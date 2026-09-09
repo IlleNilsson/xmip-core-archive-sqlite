@@ -9,20 +9,15 @@
 //! the four item columns every archive technology shares — `data_type`,
 //! `identifier`, `bytes`, `metadata` — plus `id`, the row, and `archived_at`,
 //! the moment. No server: this is the archive a single node keeps beside
-//! itself, and an operator opens it with any `SQLite` client.
-
-mod clock;
+//! itself, and an operator opens it with any `SQLite` client. The metadata text
+//! and `archived_at` come from the capability, `archive::metadata` and
+//! `archive::timestamp` (ADR-0044).
 
 use std::fmt::Display;
 use std::path::{Path, PathBuf};
 
-use archive::{ArchiveError, ArchiveItem, ArchiveReceipt, ArchiveStore};
+use archive::{ArchiveError, ArchiveItem, ArchiveReceipt, ArchiveStore, metadata, timestamp};
 use rusqlite::{Connection, OptionalExtension, params};
-
-/// Record and unit separators encode the metadata pairs into the one text
-/// column: pairs split on record, key from value on unit.
-const PAIR: char = '\u{1e}';
-const KV: char = '\u{1f}';
 
 /// The one table, created the first time the file is opened.
 const CREATE: &str = "CREATE TABLE IF NOT EXISTS archive (\
@@ -92,8 +87,8 @@ impl ArchiveStore for SqliteArchive {
                     item.data_type,
                     item.identifier,
                     item.bytes,
-                    encode_metadata(&item.metadata),
-                    clock::now()
+                    metadata::encode(&item.metadata),
+                    timestamp::now()
                 ],
             )
             .map_err(error)?;
@@ -113,7 +108,7 @@ impl ArchiveStore for SqliteArchive {
                     data_type: row.get(0)?,
                     identifier: row.get(1)?,
                     bytes: row.get(2)?,
-                    metadata: decode_metadata(&row.get::<_, String>(3)?),
+                    metadata: metadata::decode(&row.get::<_, String>(3)?),
                 })
             })
             .optional()
@@ -122,25 +117,6 @@ impl ArchiveStore for SqliteArchive {
             message: format!("no row {rowid} in {}", receipt.location),
         })
     }
-}
-
-fn encode_metadata(pairs: &[(String, String)]) -> String {
-    pairs
-        .iter()
-        .map(|(key, value)| format!("{key}{KV}{value}"))
-        .collect::<Vec<_>>()
-        .join(&PAIR.to_string())
-}
-
-fn decode_metadata(encoded: &str) -> Vec<(String, String)> {
-    if encoded.is_empty() {
-        return Vec::new();
-    }
-    encoded
-        .split(PAIR)
-        .filter_map(|pair| pair.split_once(KV))
-        .map(|(key, value)| (key.to_string(), value.to_string()))
-        .collect()
 }
 
 /// `path` as the path part of a URI: forward slashes, and a leading slash so a
