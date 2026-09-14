@@ -13,7 +13,6 @@
 //! and `archived_at` come from the capability, `archive::metadata` and
 //! `archive::timestamp` (ADR-0044).
 
-use std::fmt::Display;
 use std::path::{Path, PathBuf};
 
 use archive::{ArchiveError, ArchiveItem, ArchiveReceipt, ArchiveStore, metadata, timestamp};
@@ -53,10 +52,12 @@ impl SqliteArchive {
     /// The database, opened with its table in place.
     fn open(&self) -> Result<Connection, ArchiveError> {
         if let Some(parent) = self.path.parent() {
-            std::fs::create_dir_all(parent).map_err(error)?;
+            std::fs::create_dir_all(parent).map_err(ArchiveError::caused_by)?;
         }
-        let connection = Connection::open(&self.path).map_err(error)?;
-        connection.execute(CREATE, []).map_err(error)?;
+        let connection = Connection::open(&self.path).map_err(ArchiveError::caused_by)?;
+        connection
+            .execute(CREATE, [])
+            .map_err(ArchiveError::caused_by)?;
         Ok(connection)
     }
 
@@ -91,7 +92,7 @@ impl ArchiveStore for SqliteArchive {
                     timestamp::now()
                 ],
             )
-            .map_err(error)?;
+            .map_err(ArchiveError::caused_by)?;
         let rowid = connection.last_insert_rowid();
         Ok(ArchiveReceipt {
             location: format!("{}{rowid}", self.prefix()),
@@ -112,7 +113,7 @@ impl ArchiveStore for SqliteArchive {
                 })
             })
             .optional()
-            .map_err(error)?;
+            .map_err(ArchiveError::caused_by)?;
         row.ok_or_else(|| ArchiveError {
             message: format!("no row {rowid} in {}", receipt.location),
         })
@@ -130,29 +131,15 @@ fn uri_path(path: &Path) -> String {
     }
 }
 
-fn error(cause: impl Display) -> ArchiveError {
-    ArchiveError {
-        message: cause.to_string(),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use archive::fixture::item;
 
     fn scratch(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("xmip-sqlite-{name}-{}", std::process::id()));
         std::fs::remove_dir_all(&dir).ok();
         dir
-    }
-
-    fn item(id: &str) -> ArchiveItem {
-        ArchiveItem {
-            data_type: "json".to_string(),
-            identifier: id.to_string(),
-            bytes: b"{\"kept\":true}".to_vec(),
-            metadata: vec![("source".to_string(), "playground".to_string())],
-        }
     }
 
     #[test]
