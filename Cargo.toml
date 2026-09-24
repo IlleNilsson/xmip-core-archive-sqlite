@@ -7,7 +7,7 @@ version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
 repository = "https://github.com/IlleNilsson/xmip-core-archive-sqlite"
-description = "SQLite archive target: one file, no server, the archive a single node keeps beside itself. A xmip-core-archive technology."
+description = "SQLite archive target: one file, no server, the archive a single node keeps beside itself — the SQLite dialect of the capability's SqlArchive. A xmip-core-archive technology."
 publish = false
 
 [lib]
@@ -15,11 +15,16 @@ path = "src/lib.rs"
 
 [dependencies]
 # A Technology depends on its parent Capability, never the reverse
-# (repository-model.md). The ArchiveStore trait and its types live there.
+# (repository-model.md). The ArchiveStore trait, its types and SqlArchive live
+# there; this crate is its SQLite dialect.
 archive = { package = "xmip-core-archive", git = "https://github.com/IlleNilsson/xmip-core-archive", branch = "main" }
 # The one real engine. Bundled: the SQLite amalgamation is compiled into the
 # crate, so a node needs no SQLite installed beside it.
 rusqlite = { version = "0.37", features = ["bundled"] }
+# The SQL delimiters and hex every SQL crate writes with.
+codec = { package = "xmip-core-library-codec", git = "https://github.com/IlleNilsson/xmip-core-library-codec", branch = "main" }
+# The file as the path of a URI, in the receipt and back.
+net = { package = "xmip-core-library-net", git = "https://github.com/IlleNilsson/xmip-core-library-net", branch = "main" }
 
 [dev-dependencies]
 # The tests archive the capability's fixture item (ADR-0044); the feature
