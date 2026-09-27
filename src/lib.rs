@@ -71,10 +71,9 @@ impl Dialect for Sqlite {
         format!("X'{}'", hex::encode(bytes))
     }
 
-    /// `hex(bytes)` answered as its digits; a column that holds text
-    /// rather than a BLOB comes back as it is.
-    fn column_bytes(text: String) -> Vec<u8> {
-        hex::decode(&text).unwrap_or_else(|_| text.into_bytes())
+    /// `hex(bytes)` answered as its digits.
+    fn column_bytes(text: &str) -> Option<Vec<u8>> {
+        hex::decode(text).ok()
     }
 
     /// The file the address names, its directory created, waiting out a
