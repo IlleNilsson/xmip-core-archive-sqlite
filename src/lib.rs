@@ -1,16 +1,17 @@
 #![forbid(unsafe_code)]
 
-//! `SQLite` archive: the [`Dialect`] the archive capability's `SqlArchive`
+//! `SQLite` archive: the [`Database`] the archive capability's `SqlArchive`
 //! keeps every retained item in, as one row of a single `SQLite` 3 database
 //! file, restored by row id — `SqlArchive::<Sqlite>`, made by [`at`].
 //!
 //! A xmip-core-archive **technology** (repository-model.md). The store, the
 //! row, the INSERT and SELECT and the receipt are the capability's
 //! (`archive::sql`, ADR-0044), as they are for `PostgreSQL`, SQL Server and
-//! `MySQL`; until 2026-09-24 this crate carried its own copy of each. Only
-//! the dialect is this crate's: `"…"` identifiers and `'…'` literals as
-//! ISO writes them (`codec::sql`), the bytes as an `X'…'` literal in and
-//! `hex(bytes)` out, the new row's id through `RETURNING`, and the engine,
+//! `MariaDB`; until 2026-09-24 this crate carried its own copy of each. The
+//! SQL is `SQLite`'s (`xmip-core-library-sql`): `"…"` identifiers and `'…'`
+//! literals as ISO writes them, the bytes as an `X'…'` literal in and
+//! `hex(bytes)` out, the new row's id through `RETURNING`; this crate keeps
+//! the engine,
 //! opened on the file the store's address names. No server: this is the
 //! archive a single node keeps beside itself, so the file, its directory
 //! and the table are created on first use, and an operator opens it with
@@ -34,11 +35,10 @@
 use std::path::Path;
 
 use archive::ArchiveError;
-use archive::sql::{Dialect, Row, Server, SqlArchive, table_name};
-use codec::hex;
-use codec::sql::Delimiter;
+use archive::sql::{Database, Row, Server, SqlArchive};
 use rusqlite::Connection;
 use rusqlite::types::ValueRef;
+use sql::{Dialect, SQLITE};
 
 /// The name `SQLite` gives the database a file holds.
 pub const DATABASE: &str = "main";
@@ -53,28 +53,10 @@ pub fn at(path: impl AsRef<Path>) -> SqlArchive<Sqlite> {
 /// What `SQLite` does its own way.
 pub struct Sqlite;
 
-impl Dialect for Sqlite {
+impl Database for Sqlite {
     const SCHEME: &'static str = "sqlite";
-    const BYTES_EXPRESSION: &'static str = "hex(bytes)";
-    const ID_AFTER_VALUES: &'static str = " RETURNING id";
+    const DIALECT: Dialect = SQLITE;
     type Connection = Connection;
-
-    fn quote_identifier(name: &str) -> String {
-        Delimiter::IDENTIFIER.quote(name)
-    }
-
-    fn quote_literal(text: &str) -> String {
-        Delimiter::STRING.quote(text)
-    }
-
-    fn bytes_literal(bytes: &[u8]) -> String {
-        format!("X'{}'", hex::encode(bytes))
-    }
-
-    /// `hex(bytes)` answered as its digits.
-    fn column_bytes(text: &str) -> Option<Vec<u8>> {
-        hex::decode(text).ok()
-    }
 
     /// The file the address names, its directory created, waiting out a
     /// writer that holds it for as long as the store's timeout.
@@ -101,7 +83,7 @@ impl Dialect for Sqlite {
              bytes BLOB NOT NULL, \
              metadata TEXT NOT NULL, \
              archived_at TEXT NOT NULL)",
-            table_name::<Self>(table)
+            SQLITE.quote_table(table)
         );
         connection
             .execute(&create, [])

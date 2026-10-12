@@ -1,9 +1,9 @@
 # xmip-core-archive-sqlite
 
 SQLite archive target: one file, no server, the archive a single node keeps
-beside itself. It is the SQLite dialect of the capability's
-`archive::sql::SqlArchive`, the same store PostgreSQL, SQL Server and MySQL
-archive through: `xmip_core_archive_sqlite::at(path)` is
+beside itself. It is the SQLite `archive::sql::Database` of the capability's
+`archive::sql::SqlArchive`, the same store PostgreSQL, SQL Server and MariaDB
+archive through, its SQL `sql::SQLITE` from `xmip-core-library-sql`: `xmip_core_archive_sqlite::at(path)` is
 `SqlArchive<Sqlite>` on that file, and a receipt reads
 `sqlite:///<file>/main/<table>?id=<n>`. A technology of
 [xmip-core-archive](https://github.com/IlleNilsson/xmip-core-archive).

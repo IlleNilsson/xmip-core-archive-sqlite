@@ -21,8 +21,9 @@ archive = { package = "xmip-core-archive", git = "https://github.com/IlleNilsson
 # The one real engine. Bundled: the SQLite amalgamation is compiled into the
 # crate, so a node needs no SQLite installed beside it.
 rusqlite = { version = "0.37", features = ["bundled"] }
-# The SQL delimiters and hex every SQL crate writes with.
-codec = { package = "xmip-core-library-codec", git = "https://github.com/IlleNilsson/xmip-core-library-codec", branch = "main" }
+# SQL: the dialect this database speaks, which the capability's SqlArchive
+# writes its row and reads its bytes back in.
+sql = { package = "xmip-core-library-sql", git = "https://github.com/IlleNilsson/xmip-core-library-sql", branch = "main" }
 # The file as the path of a URI, in the receipt and back.
 net = { package = "xmip-core-library-net", git = "https://github.com/IlleNilsson/xmip-core-library-net", branch = "main" }
 
