@@ -128,12 +128,10 @@ mod tests {
     use super::*;
     use archive::fixture::item;
     use archive::{ArchiveReceipt, ArchiveStore};
-    use std::path::PathBuf;
+    use file::temporary::Folder;
 
-    fn scratch(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("xmip-sqlite-{name}-{}", std::process::id()));
-        std::fs::remove_dir_all(&dir).ok();
-        dir
+    fn scratch(name: &str) -> Folder {
+        Folder::new(&format!("archive-sqlite-{name}"))
     }
 
     #[test]
@@ -157,7 +155,6 @@ mod tests {
         assert_eq!(receipt.checksum, None);
         let restored = store.restore(&receipt).expect("restore");
         assert_eq!(restored, original, "a real SQLite read gives the item back");
-        std::fs::remove_dir_all(&root).ok();
     }
 
     #[test]
@@ -183,7 +180,6 @@ mod tests {
             store.restore(&first).expect("restore").identifier,
             "it's #1"
         );
-        std::fs::remove_dir_all(&root).ok();
     }
 
     #[test]
@@ -203,7 +199,6 @@ mod tests {
         };
         let refused = store.restore(&elsewhere).expect_err("another file");
         assert!(refused.message.contains("not a receipt"), "{refused}");
-        std::fs::remove_dir_all(&root).ok();
     }
 
     #[test]
@@ -216,6 +211,5 @@ mod tests {
             .restore(&receipt)
             .expect("restore from the file on disk");
         assert_eq!(restored, original);
-        std::fs::remove_dir_all(&root).ok();
     }
 }
